@@ -183,6 +183,10 @@ export function getClinicalTrackColor(
     }
 }
 
+function gapModeToGapOnBoolean(node: GAP_MODE_ENUM): boolean {
+    return node !== GAP_MODE_ENUM.HIDE_GAPS;
+}
+
 /* fields and methods in the class below are ordered based on roughly
 /* chronological setup concerns, rather than on encapsulation and public API */
 /* tslint:disable: member-ordering */
@@ -1683,16 +1687,24 @@ export default class ResultsViewOncoprint extends React.Component<
         if (!this.oncoprint || !this.oncoprintJs) {
             return;
         }
-        const clinicalTracks = _.clone(this.selectedClinicalTrackConfig);
+        const clinicalTracks = _.cloneDeep(
+            this.selectedClinicalTrackConfig
+        ) as ClinicalTrackConfigMap;
         const stableId = this.clinicalTrackKeyToAttributeId(
             this.oncoprint.getTrackSpecKey(trackId) || ''
         );
         const isClinicalTrack =
             stableId && _.keys(clinicalTracks).some(ctg => ctg === stableId);
-        if (!isClinicalTrack) {
+        if (!isClinicalTrack || !stableId) {
             return;
         }
-        Object.assign(clinicalTracks[stableId], change);
+        const track = clinicalTracks[stableId]; // not able to log in to test the code
+        if (change.sortOrder !== undefined) {
+            track.sortOrder = change.sortOrder;
+        }
+        if (change.gapMode !== undefined) {
+            track.gapOn = gapModeToGapOnBoolean(change.gapMode);
+        }
 
         const session = this.props.store.pageUserSession;
         session.userSettings = {
